@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>QuestGaze | Exam Question Predictor</title>
+    <style>
+        :root {
+            --blue: #4d4ff5;
+            --blue-dark: #4145e8;
+            --blue-soft: #eef0ff;
+            --bg: #f4f6ff;
+            --ink: #20243a;
+            --muted: #7d849d;
+            --line: #e7eaf5;
+            --green: #0c9f83;
+            --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        body { margin:0; background:var(--bg); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); }
+        button,input,select { font:inherit; } button { cursor:pointer; }
+        .layout { display:flex; min-height:100vh; }
+        .sidebar { width:208px; background:linear-gradient(180deg,#5053fa 0%,#4146e9 100%); color:#fff; padding:22px 13px; flex-shrink:0; box-shadow:8px 0 28px #4048a50c; }
+        .brand { display:flex; gap:10px; align-items:center; font-weight:800; font-size:17px; padding:0 9px 35px; letter-spacing:.01em; }
+        .logo { background:#fff; color:var(--blue); width:32px; height:32px; border-radius:11px; display:grid; place-items:center; font-weight:900; box-shadow:0 4px 12px #2528b433; }
+        .navlabel { font-size:10px; color:#d8dcff; letter-spacing:.13em; padding:0 12px 10px; }
+        .nav button { display:flex; gap:11px; align-items:center; width:100%; padding:11px 12px; margin:4px 0; border:0; background:transparent; color:#e6e7ff; border-radius:11px; text-align:left; font-size:12px; transition:background .18s,color .18s,transform .18s; }
+        .nav button b { display:inline-grid; place-items:center; width:18px; font-size:15px; }
+        .nav button.active,.nav button:hover { background:#fff; color:var(--blue-dark); box-shadow:0 5px 16px #2227a21c; transform:translateX(1px); }
+        .main { flex:1; min-width:0; }
+        .top { height:66px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; padding:0 30px; position:sticky; top:0; z-index:5; }
+        .top strong { font-size:14px; letter-spacing:-.01em; } .top small { color:var(--muted); font-size:11px; }
+        .content { max-width:1450px; margin:0 auto; padding:27px 30px 38px; }
+        .heading { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:22px; }
+        .heading h1 { font-size:24px; letter-spacing:-.035em; margin:0 0 6px; font-weight:780; } .heading p { color:var(--muted); margin:0; font-size:12px; }
+        .btn { border:1px solid #e4e7f4; border-radius:9px; background:#fff; padding:10px 14px; color:#303650; font-weight:650; font-size:12px; transition:transform .15s,box-shadow .15s,background .15s; }
+        .btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; box-shadow:0 5px 12px #4d4ff526; }
+        .btn.primary:hover { background:var(--blue-dark); }
+        .btn.delete { background:#fff3f3; color:#bd3c4a; border-color:#ffd9dd; padding:7px 10px; }
+        .btn:hover { transform:translateY(-1px); box-shadow:0 5px 14px #28336a12; }
+        .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; margin-bottom:18px; }
+        .card { background:#fff; border:1px solid var(--line); border-radius:15px; padding:20px; box-shadow:0 4px 18px #25336b05; min-height:116px; }
+        .stat-label { color:var(--muted); font-size:11px; } .stat { font-size:29px; font-weight:800; letter-spacing:-.04em; margin-top:9px; }
+        .stat-icon { width:36px; height:36px; border-radius:12px; background:#eef0ff; color:var(--blue); display:grid; place-items:center; float:right; font-size:16px; }
+        .card:nth-child(2) .stat-icon { background:#fff0f0; color:#f06a73; } .card:nth-child(3) .stat-icon { background:#e7fbf5; color:#0c9f83; }
+        .section-title { font-weight:760; margin:0 0 15px; font-size:14px; letter-spacing:-.015em; }
+        .quick { display:flex; gap:9px; flex-wrap:wrap; }
+        .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
+        table { border-collapse:collapse; width:100%; min-width:540px; }
+        th,td { text-align:left; padding:13px 15px; border-bottom:1px solid #edf0f8; font-size:12px; }
+        th { font-size:10px; color:#7d849d; background:#fafbff; font-weight:750; letter-spacing:.02em; } tr:last-child td { border-bottom:0; }
+        .pill { display:inline-block; border-radius:99px; background:#eef0ff; color:#4d4ff5; padding:5px 9px; font-size:10px; font-weight:750; }
+        .panel { background:#fff; border:1px solid var(--line); border-radius:15px; padding:21px; margin-bottom:17px; box-shadow:0 4px 18px #25336b05; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+        .field label { display:block; font-size:11px; font-weight:700; margin-bottom:7px; color:#3c425a; }
+        .field input,.field select { width:100%; border:1px solid #e4e8f4; border-radius:9px; padding:11px 12px; background:#fff; color:var(--ink); outline:none; font-size:12px; }
+        .field input:focus,.field select:focus { border-color:#9da4ff; box-shadow:0 0 0 3px #a5aaff26; }
+        .actions { display:flex; gap:9px; margin-top:17px; } .hidden { display:none !important; }
+        .notice { padding:12px 14px; border-radius:10px; background:#eef0ff; color:#4b50ce; font-size:11px; margin-bottom:15px; line-height:1.6; }
+        .muted { color:var(--muted); } .empty { padding:24px; text-align:center; color:var(--muted); }
+        .toast { position:fixed; bottom:22px; right:22px; background:#20243a; color:white; padding:12px 16px; border-radius:10px; box-shadow:0 8px 28px #0002; animation:up .2s ease; z-index:1100; max-width:calc(100vw - 44px); font-size:12px; }
+        @keyframes up { from { transform:translateY(8px); opacity:0; } to { transform:none; opacity:1; } }
+        .modal-backdrop { position:fixed; inset:0; background:rgba(23,28,58,.48); display:flex; align-items:center; justify-content:center; padding:20px; z-index:1000; backdrop-filter:blur(3px); }
+        .confirm-modal { width:min(100%,420px); background:#fff; border:1px solid var(--line); border-radius:18px; padding:24px; box-shadow:0 24px 70px #21143835; animation:modal-in .18s ease; }
+        .modal-icon { width:48px; height:48px; border-radius:15px; background:#eef0ff; color:var(--blue); display:grid; place-items:center; font-size:23px; margin-bottom:16px; }
+        .confirm-modal h2 { font-size:20px; margin:0 0 8px; } .confirm-modal p { font-size:13px; line-height:1.55; color:var(--muted); margin:0 0 18px; }
+        .modal-record { background:#fafbff; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:20px; font-size:12px; overflow-wrap:anywhere; }
+        .modal-record small { display:block; color:var(--muted); font-size:10px; font-weight:750; letter-spacing:.08em; margin-bottom:5px; }
+        .modal-actions { display:flex; justify-content:flex-end; gap:10px; } .btn.danger { background:#dc3545; border-color:#dc3545; color:#fff; } .btn.danger:hover { background:#b91c2c; }
+        .btn:disabled { opacity:.65; cursor:wait; transform:none; box-shadow:none; } @keyframes modal-in { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        #page-dashboard .panel:first-of-type { background:linear-gradient(110deg,#fff 0%,#f7f8ff 100%); }
+        #page-dashboard .quick .btn:not(.primary) { background:#fff; }
+        #recent-papers { font-size:12px; }
+        @media (max-width:900px) { .sidebar { width:180px; } .content { padding:22px 18px; } .top { padding:0 20px; } }
+        @media (max-width:760px) { .sidebar { width:64px; padding:16px 7px; } .brand { padding:0 7px 24px; } .brand .brand-name,.navlabel,.nav button span { display:none; } .nav button { justify-content:center; padding:12px 4px; } .top { padding:0 16px; } .content { padding:20px 14px; } .cards { grid-template-columns:1fr; } .heading { align-items:flex-start; flex-direction:column; } .form-grid { grid-template-columns:1fr; } }
+        @media (max-width:480px) { .confirm-modal { padding:20px; } .modal-actions { flex-direction:column-reverse; } .modal-actions .btn { width:100%; } .top small { display:none; } }
+    </style>
+</head>
+
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo">Q</div>
+            <span class="brand-name">QuestGaze</span>
+        </div>
+
+        <div class="navlabel">WORKSPACE</div>
+
+        <nav class="nav">
+            <button class="active" data-page="dashboard"><b>⌂</b><span>Dashboard</span></button>
+            <button data-page="subjects"><b>▤</b><span>Subjects</span></button>
+            <button data-page="papers"><b>▧</b><span>Question Papers</span></button>
+            <button data-page="predict"><b>✦</b><span>Predict Questions</span></button>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <header class="top">
+            <strong id="top-title">Dashboard</strong>
+            <small>Intelligent Exam Question Prediction</small>
+        </header>
+
+        <div class="content">
+            <!-- Dashboard -->
+            <section id="page-dashboard">
+                <div class="heading">
+                    <div>
+                        <h1>Exam intelligence overview</h1>
+                        <p>Track your papers, discover recurring topics, and prepare with more confidence.</p>
+                    </div>
+                    <button class="btn primary" onclick="showPage('predict')">✦ Predict Questions</button>
+                </div>
+
+                <div class="cards">
+                    <div class="card">
+                        <span class="stat-icon">▤</span>
+                        <div class="stat-label">Total Subjects</div>
+                        <div class="stat" id="count-subjects">—</div>
+                    </div>
+
+                    <div class="card">
+                        <span class="stat-icon">▧</span>
+                        <div class="stat-label">Question Papers</div>
+                        <div class="stat" id="count-papers">—</div>
+                    </div>
+
+                    <div class="card">
+                        <span class="stat-icon">☷</span>
+                        <div class="stat-label">Questions Stored</div>
+                        <div class="stat" id="count-questions">—</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 class="section-title">Quick actions</h3>
+                    <p class="muted" style="font-size:12px;line-height:1.7">Add a subject, upload previous question papers, or run a topic recurrence analysis from your saved history.</p>
+                    <div class="quick">
+                        <button class="btn" onclick="showPage('subjects')">+ Add Subject</button>
+                        <button class="btn" onclick="showPage('papers')">+ Add Question Paper</button>
+                        <button class="btn primary" onclick="showPage('predict')">Predict Questions</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 class="section-title">Recent question papers</h3>
+                    <div id="recent-papers" class="muted">Loading records…</div>
+                </div>
+            </section>
+
+            <!-- Subjects -->
+            <section id="page-subjects" class="hidden">
+                <div class="heading">
+                    <div>
+                        <h1>Manage Subjects</h1>
+                        <p>Add and view your exam subjects.</p>
+                    </div>
+                    <button class="btn primary" onclick="toggleForm('subject-form')">+ Add Subject</button>
+                </div>
+
+                <div id="subject-form" class="panel hidden">
+                    <h3 class="section-title">New Subject</h3>
+                    <form id="add-subject">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="subject-name">Subject Name</label>
+                                <input id="subject-name" required maxlength="100" placeholder="e.g. Data Structures">
+                            </div>
+                            <div class="field">
+                                <label for="subject-code">Subject Code</label>
+                                <input id="subject-code" required maxlength="30" placeholder="e.g. CS201">
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn primary" type="submit">Save Subject</button>
+                            <button class="btn" type="button" onclick="toggleForm('subject-form', false)">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr><th>Subject Name</th><th>Subject Code</th><th>ID</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="subjects-body">
+                        <tr><td colspan="4" class="empty">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Question Papers -->
+            <section id="page-papers" class="hidden">
+                <div class="heading">
+                    <div>
+                        <h1>Question Papers</h1>
+                        <p>Store previous exam papers for prediction.</p>
+                    </div>
+                    <button class="btn primary" onclick="toggleForm('paper-form')">+ Add Question Paper</button>
+                </div>
+
+                <div id="paper-form" class="panel hidden">
+                    <h3 class="section-title">New Question Paper</h3>
+                    <form id="add-paper">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="paper-subject">Subject</label>
+                                <select id="paper-subject" required></select>
+                            </div>
+                            <div class="field">
+                                <label for="paper-year">Exam Year</label>
+                                <input id="paper-year" required placeholder="e.g. 2025">
+                            </div>
+                            <div class="field">
+                                <label for="paper-semester">Semester</label>
+                                <select id="paper-semester" required>
+                                    <option value="">Select semester</option>
+                                    <option>Semester 1</option>
+                                    <option>Semester 2</option>
+                                    <option>Semester 3</option>
+                                    <option>Semester 4</option>
+                                    <option>Semester 5</option>
+                                    <option>Semester 6</option>
+                                    <option>Semester 7</option>
+                                    <option>Semester 8</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn primary" type="submit">Save Question Paper</button>
+                            <button class="btn" type="button" onclick="toggleForm('paper-form', false)">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <h3 class="section-title">Upload Previous Question Papers (PDF)</h3>
+                    <p class="muted" style="font-size:13px;line-height:1.6">Select multiple text-based PDF papers for one subject and semester. Put the exam year in each filename (for example, OOP_2022.pdf). QuestGaze extracts question text and estimates topic recurrence. Scanned image-only PDFs need OCR and are not supported yet.</p>
+                    <form id="upload-papers-form">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="upload-subject">Subject</label>
+                                <select id="upload-subject" required></select>
+                            </div>
+                            <div class="field">
+                                <label for="upload-semester">Semester</label>
+                                <select id="upload-semester" required>
+                                    <option value="">Select semester</option>
+                                    <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option><option>Semester 4</option>
+                                    <option>Semester 5</option><option>Semester 6</option><option>Semester 7</option><option>Semester 8</option>
+                                </select>
+                            </div>
+                            <div class="field" style="grid-column:1/-1">
+                                <label for="upload-files">Question paper PDFs</label>
+                                <input id="upload-files" type="file" accept="application/pdf,.pdf" multiple required>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn primary" id="upload-papers-button" type="submit">Upload and Analyse PDFs</button>
+                        </div>
+                        <div id="upload-status" class="muted" style="font-size:13px;margin-top:12px" aria-live="polite"></div>
+                    </form>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr><th>Subject</th><th>Exam Year</th><th>Semester</th><th>Paper ID</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="papers-body">
+                        <tr><td colspan="5" class="empty">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Predictions -->
+            <section id="page-predict" class="hidden">
+                <div class="heading">
+                    <div>
+                        <h1>Predict Questions</h1>
+                        <p>Find recurring topics from historical question papers.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <form id="predict-form">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="predict-subject">Subject</label>
+                                <select id="predict-subject" required></select>
+                            </div>
+                            <div class="field">
+                                <label for="predict-semester">Semester</label>
+                                <select id="predict-semester">
+                                    <option value="">All semesters</option>
+                                    <option>Semester 1</option>
+                                    <option>Semester 2</option>
+                                    <option>Semester 3</option>
+                                    <option>Semester 4</option>
+                                    <option>Semester 5</option>
+                                    <option>Semester 6</option>
+                                    <option>Semester 7</option>
+                                    <option>Semester 8</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn primary" type="submit">✦ Predict Questions</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="prediction-result" class="panel hidden">
+                    <h3 class="section-title">Prediction Results</h3>
+                    <div id="prediction-body"></div>
+                </div>
+
+                <div class="notice">
+                    Predictions are estimates based on topic recurrence in past papers.
+                    They are study aids, not guaranteed exam questions.
+                </div>
+            </section>
+
+            <div id="connection-note" class="muted" style="font-size:12px;margin-top:20px">
+                Connecting to Java backend…
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Custom in-app delete confirmation -->
+<div id="confirm-backdrop" class="modal-backdrop hidden" role="presentation">
+    <section class="confirm-modal"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="confirm-title"
+             aria-describedby="confirm-message">
+
+        <div class="modal-icon" aria-hidden="true">⌫</div>
+
+        <h2 id="confirm-title">Confirm deletion</h2>
+
+        <p id="confirm-message">
+            Are you sure you want to delete this record? This action cannot be undone.
+        </p>
+
+        <div class="modal-record">
+            <small id="confirm-record-label">RECORD</small>
+            <strong id="confirm-record-name"></strong>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn" type="button" id="confirm-cancel">Cancel</button>
+            <button class="btn danger" type="button" id="confirm-delete">Delete</button>
+        </div>
+    </section>
+</div>
+
+<div id="toast-holder"></div>
+
+<script>
+    const API = 'http://localhost:8080/api';
+    let subjects = [];
+    let papers = [];
+
+    const $ = id => document.getElementById(id);
+
+    function showPage(page) {
+        document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+        $('page-' + page).classList.remove('hidden');
+
+        document.querySelectorAll('.nav button').forEach(button => {
+            button.classList.toggle('active', button.dataset.page === page);
+        });
+
+        $('top-title').textContent = ({
+            dashboard: 'Dashboard',
+            subjects: 'Manage Subjects',
+            papers: 'Question Papers',
+            predict: 'Predict Questions'
+        })[page];
+
+        $('page-' + page).style.animation = 'up .2s ease';
+
+        if (page === 'subjects') loadSubjects();
+        if (page === 'papers') loadPapers();
+        if (page === 'dashboard') loadDashboard();
+        if (page === 'predict') loadSubjects();
+    }
+
+    document.querySelectorAll('.nav button').forEach(button => {
+        button.addEventListener('click', () => showPage(button.dataset.page));
+    });
+
+    function toggleForm(id, show) {
+        const element = $(id);
+        element.classList.toggle(
+            'hidden',
+            show === undefined ? !element.classList.contains('hidden') : !show
+        );
+    }
+
+    function toast(message) {
+        $('toast-holder').innerHTML = '';
+
+        const element = document.createElement('div');
+        element.className = 'toast';
+        element.textContent = message;
+
+        $('toast-holder').append(element);
+        setTimeout(() => element.remove(), 2800);
+    }
+
+    /* Custom confirmation modal logic */
+    let pendingDeleteAction = null;
+    let previousFocus = null;
+
+    function confirmDelete({ title, message, recordLabel, recordName, onConfirm }) {
+        const backdrop = $('confirm-backdrop');
+
+        $('confirm-title').textContent = title;
+        $('confirm-message').textContent = message;
+        $('confirm-record-label').textContent = recordLabel;
+        $('confirm-record-name').textContent = recordName;
+
+        pendingDeleteAction = onConfirm;
+        previousFocus = document.activeElement;
+
+        backdrop.classList.remove('hidden');
+        $('confirm-cancel').focus();
+    }
+
+    function closeDeleteModal() {
+        $('confirm-backdrop').classList.add('hidden');
+        pendingDeleteAction = null;
+
+        $('confirm-delete').disabled = false;
+        $('confirm-delete').textContent = 'Delete';
+
+        if (previousFocus && typeof previousFocus.focus === 'function') {
+            previousFocus.focus();
+        }
+    }
+
+    $('confirm-cancel').addEventListener('click', closeDeleteModal);
+
+    $('confirm-backdrop').addEventListener('click', event => {
+        if (event.target === $('confirm-backdrop')) {
+            closeDeleteModal();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (
+            event.key === 'Escape' &&
+            !$('confirm-backdrop').classList.contains('hidden')
+        ) {
+            closeDeleteModal();
+        }
+    });
+
+    $('confirm-delete').addEventListener('click', async () => {
+        if (!pendingDeleteAction) return;
+
+        const action = pendingDeleteAction;
+
+        $('confirm-delete').disabled = true;
+        $('confirm-delete').textContent = 'Deleting…';
+
+        try {
+            await action();
+            closeDeleteModal();
+        } catch (error) {
+            closeDeleteModal();
+            toast(error.message || 'Could not delete this record.');
+        }
+    });
+
+    async function request(path, options = {}) {
+        const response = await fetch(API + path, {
+            headers: { 'Content-Type': 'application/json' },
+            ...options
+        });
+
+        if (!response.ok) {
+            let message = 'Request failed (' + response.status + ')';
+
+            try {
+                message = (await response.json()).error || message;
+            } catch (_) {}
+
+            throw Error(message);
+        }
+
+        return response.status === 204 ? null : response.json();
+    }
+
+    function esc(value) {
+        return String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[character]);
+    }
+
+    async function loadSubjects() {
+        try {
+            subjects = await request('/subjects');
+
+            $('subjects-body').innerHTML = subjects.length
+                ? subjects.map(subject => `
+                    <tr>
+                        <td>${esc(subject.subjectName)}</td>
+                        <td><span class="pill">${esc(subject.subjectCode)}</span></td>
+                        <td>${esc(subject.subjectId)}</td>
+                        <td>
+                            <button class="btn delete" type="button"
+                                onclick="deleteSubject(${Number(subject.subjectId)})">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="empty">No subjects yet. Click “Add Subject” to begin.</td></tr>';
+
+            const options = '<option value="">Select subject</option>' +
+                subjects.map(subject => `
+                    <option value="${subject.subjectId}">
+                        ${esc(subject.subjectName)} (${esc(subject.subjectCode)})
+                    </option>
+                `).join('');
+
+            $('paper-subject').innerHTML = options;
+            $('upload-subject').innerHTML = options;
+            $('predict-subject').innerHTML = options;
+            $('connection-note').textContent = 'Connected to Java backend.';
+        } catch (error) {
+            $('subjects-body').innerHTML =
+                '<tr><td colspan="4" class="empty">Cannot connect to Java backend. Start the backend first.</td></tr>';
+
+            setConnection(false, error.message);
+        }
+    }
+
+    async function loadPapers() {
+        try {
+            papers = await request('/question-papers');
+
+            const rows = papers.map(paper => `
+                <tr>
+                    <td>${esc(paper.subjectName || ('Subject #' + paper.subjectId))}</td>
+                    <td>${esc(paper.examYear)}</td>
+                    <td>${esc(paper.semester)}</td>
+                    <td>${esc(paper.paperId)}</td>
+                    <td>
+                        <button class="btn delete" type="button"
+                            onclick="deletePaper(${Number(paper.paperId)})">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            $('papers-body').innerHTML = rows ||
+                '<tr><td colspan="5" class="empty">No question papers added yet.</td></tr>';
+
+            setConnection(true);
+        } catch (error) {
+            $('papers-body').innerHTML =
+                '<tr><td colspan="5" class="empty">Cannot connect to Java backend. Start the backend first.</td></tr>';
+
+            setConnection(false, error.message);
+        }
+    }
+
+    async function loadDashboard() {
+        try {
+            const dashboard = await request('/dashboard');
+
+            $('count-subjects').textContent = dashboard.subjects;
+            $('count-papers').textContent = dashboard.papers;
+            $('count-questions').textContent = dashboard.questions;
+
+            papers = await request('/question-papers');
+
+            $('recent-papers').innerHTML = papers.length
+                ? '<div class="table-wrap"><table><thead><tr><th>Subject</th><th>Year</th><th>Semester</th></tr></thead><tbody>' +
+                papers.slice(-5).reverse().map(paper => `
+                        <tr>
+                            <td>${esc(paper.subjectName || ('Subject #' + paper.subjectId))}</td>
+                            <td>${esc(paper.examYear)}</td>
+                            <td>${esc(paper.semester)}</td>
+                        </tr>
+                    `).join('') +
+                '</tbody></table></div>'
+                : 'No papers stored yet.';
+
+            setConnection(true);
+        } catch (error) {
+            ['count-subjects', 'count-papers', 'count-questions'].forEach(id => {
+                $(id).textContent = '—';
+            });
+
+            $('recent-papers').textContent =
+                'Start the Java backend to load your saved records.';
+
+            setConnection(false, error.message);
+        }
+    }
+
+    function setConnection(ok, message = '') {
+        $('connection-note').textContent = ok
+            ? 'Connected to Java backend.'
+            : 'Backend not connected yet' +
+            (message ? ': ' + message : '') +
+            '. Open this page through the Java server after setup.';
+    }
+
+    /* Delete subject using the custom popup */
+    async function deleteSubject(id) {
+        const subject = subjects.find(
+            item => Number(item.subjectId) === Number(id)
+        );
+
+        const subjectName = subject
+            ? `${subject.subjectName} (${subject.subjectCode})`
+            : `Subject #${id}`;
+
+        confirmDelete({
+            title: 'Delete subject?',
+            message: 'Are you sure you want to delete this subject? This action cannot be undone.',
+            recordLabel: 'SUBJECT',
+            recordName: subjectName,
+
+            onConfirm: async () => {
+                await request(
+                    '/subjects?subjectId=' + encodeURIComponent(id),
+                    { method: 'DELETE' }
+                );
+
+                toast('Subject deleted');
+                await loadSubjects();
+                await loadDashboard();
+            }
+        });
+    }
+
+    /* Delete question paper using the custom popup */
+    async function deletePaper(id) {
+        const paper = papers.find(
+            item => Number(item.paperId) === Number(id)
+        );
+
+        const paperName = paper
+            ? `${paper.subjectName || ('Subject #' + paper.subjectId)} — ${paper.examYear}, ${paper.semester}`
+            : `Question Paper #${id}`;
+
+        confirmDelete({
+            title: 'Delete question paper?',
+            message: 'Are you sure you want to delete this question paper? This action cannot be undone.',
+            recordLabel: 'QUESTION PAPER',
+            recordName: paperName,
+
+            onConfirm: async () => {
+                await request(
+                    '/question-papers?paperId=' + encodeURIComponent(id),
+                    { method: 'DELETE' }
+                );
+
+                toast('Question paper deleted');
+                await loadPapers();
+                await loadDashboard();
+            }
+        });
+    }
+
+    /* Add subject */
+    $('add-subject').addEventListener('submit', async event => {
+        event.preventDefault();
+
+        try {
+            await request('/subjects', {
+                method: 'POST',
+                body: JSON.stringify({
+                    subjectName: $('subject-name').value.trim(),
+                    subjectCode: $('subject-code').value.trim()
+                })
+            });
+
+            event.target.reset();
+            toggleForm('subject-form', false);
+            toast('Subject saved to MySQL');
+
+            await loadSubjects();
+            await loadDashboard();
+        } catch (error) {
+            toast(error.message);
+        }
+    });
+
+    /* Add question paper */
+    $('add-paper').addEventListener('submit', async event => {
+        event.preventDefault();
+
+        try {
+            await request('/question-papers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    subjectId: Number($('paper-subject').value),
+                    examYear: $('paper-year').value.trim(),
+                    semester: $('paper-semester').value
+                })
+            });
+
+            event.target.reset();
+            toggleForm('paper-form', false);
+            toast('Question paper saved');
+
+            await loadPapers();
+            await loadDashboard();
+        } catch (error) {
+            toast(error.message);
+        }
+    });
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = String(reader.result || '');
+                resolve(result.substring(result.indexOf(',') + 1));
+            };
+            reader.onerror = () => reject(new Error('Could not read ' + file.name));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /* Upload multiple PDFs, then extract and store their questions in MySQL. */
+    $('upload-papers-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const files = Array.from($('upload-files').files || []);
+        const subjectId = Number($('upload-subject').value);
+        const semester = $('upload-semester').value;
+        const status = $('upload-status');
+        const button = $('upload-papers-button');
+        if (!files.length) { status.textContent = 'Choose at least one PDF file.'; return; }
+        if (files.some(file => !file.name.toLowerCase().endsWith('.pdf'))) { status.textContent = 'Please select PDF files only.'; return; }
+        button.disabled = true;
+        status.textContent = 'Reading ' + files.length + ' PDF file(s)…';
+        try {
+            const encodedFiles = [];
+            for (const file of files) {
+                status.textContent = 'Preparing ' + file.name + '…';
+                encodedFiles.push({ filename: file.name, contentBase64: await fileToBase64(file) });
+            }
+            status.textContent = 'Extracting questions and saving records…';
+            const result = await request('/upload-papers', {
+                method: 'POST',
+                body: JSON.stringify({ subjectId, semester, files: encodedFiles })
+            });
+            status.textContent = 'Uploaded ' + result.savedPapers + ' paper(s); extracted ' + result.questionsExtracted + ' question record(s). Filename years were used when present.';
+            toast('Papers uploaded and analysed');
+            $('upload-files').value = '';
+            await loadPapers();
+            await loadDashboard();
+        } catch (error) {
+            status.textContent = error.message || 'Upload failed.';
+            toast(error.message || 'Upload failed');
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    /* Generate predictions */
+    $('predict-form').addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const result = $('prediction-result');
+        const body = $('prediction-body');
+
+        result.classList.remove('hidden');
+        body.textContent = 'Analysing previous question papers…';
+
+        try {
+            const data = await request(
+                '/predictions?subjectId=' +
+                encodeURIComponent($('predict-subject').value) +
+                '&semester=' +
+                encodeURIComponent($('predict-semester').value)
+            );
+
+            body.innerHTML = data.length
+                ? '<div class="table-wrap"><table><thead><tr><th>Topic</th><th>Recurrence</th><th>Importance</th><th>Typical Marks</th><th>Questions</th><th>Papers Seen</th></tr></thead><tbody>' +
+                data.map(item => `
+                        <tr>
+                            <td>${esc(item.topic)}</td>
+                            <td><strong>${esc(item.recurrencePercent)}%</strong><div style="height:6px;background:#eee8f7;border-radius:8px;overflow:hidden;margin-top:6px;min-width:90px"><div style="height:6px;width:${Math.max(0,Math.min(100,Number(item.recurrencePercent)||0))}%;background:var(--purple)"></div></div></td>
+                            <td><span class="pill">${esc(item.importance)}</span></td>
+                            <td>${esc(item.marks)}</td>
+                            <td>${esc(item.questionCount)}</td>
+                            <td>${esc(item.papersSeen)} / ${esc(item.totalPapers)}</td>
+                        </tr>
+                    `).join('') +
+                '</tbody></table></div>'
+                : 'No historical questions found for this subject. Add question records first.';
+        } catch (error) {
+            body.textContent = 'Could not generate predictions: ' + error.message;
+        }
+    });
+
+    loadDashboard();
+</script>
+</body>
+</html>
