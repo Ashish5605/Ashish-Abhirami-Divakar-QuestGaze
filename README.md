@@ -87,6 +87,8 @@ Never commit database passwords, private configuration files, or personal exam d
 ## 👨‍💻 Author
 
 **Ashish** — [GitHub Profile](https://github.com/Ashish5605)
+**Abhirami R**
+**Divakar D**
 
 ---
 
